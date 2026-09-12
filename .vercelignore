@@ -1,3 +1,4 @@
 # The Expo mobile app is built with EAS, not Vercel.
-mobile
-scripts
+# Leading slash = only the top-level folders (app/api/mobile must still deploy).
+/mobile
+/scripts
