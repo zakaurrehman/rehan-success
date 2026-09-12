@@ -1,5 +1,12 @@
 import type { NextConfig } from 'next'
 
+// A variable that exists but is empty (e.g. NEXTAUTH_URL="" in a hosting
+// dashboard) makes NextAuth throw "Invalid URL" and fails the whole build.
+// Treat empty values as unset so NextAuth falls back to VERCEL_URL.
+if (process.env.NEXTAUTH_URL !== undefined && process.env.NEXTAUTH_URL.trim() === '') {
+  delete process.env.NEXTAUTH_URL
+}
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
