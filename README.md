@@ -16,7 +16,7 @@ Professional Forex education and live-signals platform — web app, member works
 npm install
 cp .env.example .env          # fill in DATABASE_URL, NEXTAUTH_SECRET, URLs
 npx prisma db push            # create tables in YOUR database
-npm run db:seed               # admin user + sample data (admin / SEED_ADMIN_PASSWORD)
+npm run db:seed               # admin user (admin / SEED_ADMIN_PASSWORD); add SEED_SAMPLE_DATA=true for demo data locally
 npm run dev                   # http://localhost:3000
 ```
 

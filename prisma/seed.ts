@@ -7,13 +7,20 @@ import bcrypt from 'bcryptjs'
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) })
 
+// Demo content (fake performance stats, sample signals, sample reviews) is
+// shown publicly, so it is only inserted when explicitly requested.
+// Use SEED_SAMPLE_DATA=true for local development — never in production.
+const WITH_SAMPLES = process.env.SEED_SAMPLE_DATA === 'true'
+
 async function main() {
-  console.log('Seeding Rehan Success database...')
+  console.log(`Seeding Rehan Success database${WITH_SAMPLES ? ' (with sample data)' : ''}...`)
 
   // Admin account — change the password immediately after first login.
   const existing = await prisma.user.findUnique({ where: { username: 'admin' } })
   if (!existing) {
-    const hashed = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || 'admin123', 12)
+    const password = process.env.SEED_ADMIN_PASSWORD
+    if (!password) throw new Error('Set SEED_ADMIN_PASSWORD before seeding.')
+    const hashed = await bcrypt.hash(password, 12)
     await prisma.user.create({
       data: {
         fullName: 'Rehan Success Admin',
@@ -27,6 +34,14 @@ async function main() {
       }
     })
     console.log('Admin created - username: admin')
+  } else {
+    console.log('Admin already exists - skipped')
+  }
+
+  if (!WITH_SAMPLES) {
+    console.log('Sample data skipped (set SEED_SAMPLE_DATA=true to include it).')
+    console.log('Seeding complete!')
+    return
   }
 
   const months = [
@@ -67,7 +82,7 @@ async function main() {
 }
 
 main()
-  .catch(console.error)
+  .catch((e) => { console.error(e); process.exitCode = 1 })
   .finally(async () => {
     await prisma.$disconnect()
     await pool.end()
