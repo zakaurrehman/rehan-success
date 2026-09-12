@@ -1,0 +1,399 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  AFFILIATE
+  ADMIN
+}
+
+enum Plan {
+  FREE
+  BASIC
+  ADVANCED
+  MASTERY
+  PREMIUM
+  MENTORSHIP
+}
+
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SignalDirection {
+  BUY
+  SELL
+}
+
+enum SignalStatus {
+  ACTIVE
+  HIT_TP
+  HIT_SL
+  CLOSED
+}
+
+enum ImpactLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ResourceTier {
+  FREE
+  BASIC
+  PREMIUM
+}
+
+enum ReactionType {
+  LIKE
+  DISLIKE
+}
+
+model User {
+  id             String    @id @default(cuid())
+  fullName       String
+  email          String    @unique
+  phone          String?
+  city           String?
+  country        String?
+  username       String    @unique
+  password       String
+  role           Role      @default(USER)
+  plan           Plan      @default(FREE)
+  status         Status    @default(PENDING)
+  studentId      String    @unique
+  referralCode   String?   @unique
+  paymentMethod  String?
+  socialHandle   String?
+  avatarUrl      String?
+  bio            String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  sales              Sale[]
+  commissions        Commission[]
+  withdrawals        WithdrawalRequest[]
+  researchPosts      ResearchPost[]
+  communityPosts     CommunityPost[]
+  communityComments  CommunityComment[]
+  postReactions      PostReaction[]
+  courseProgress     CourseProgress[]
+  certificates       Certificate[]
+  notifications      Notification[]
+  mobileRefreshTokens MobileRefreshToken[]
+  deviceTokens        DeviceToken[]
+}
+
+model MobileRefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model DeviceToken {
+  id            String   @id @default(cuid())
+  userId        String
+  expoPushToken String   @unique
+  platform      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Signal {
+  id          String          @id @default(cuid())
+  pair        String
+  direction   SignalDirection
+  entry       Float
+  tp1         Float
+  tp2         Float?
+  tp3         Float?
+  sl          Float
+  status      SignalStatus    @default(ACTIVE)
+  pips        Float?
+  notes       String?
+  imageUrl    String?
+  closedAt    DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model SignalStat {
+  id           String   @id @default(cuid())
+  month        String
+  winRate      Float
+  totalSignals Int
+  pipsGained   Float
+  pipsLost     Float
+  updatedAt    DateTime @updatedAt
+}
+
+model ResearchPost {
+  id          String   @id @default(cuid())
+  authorId    String
+  title       String
+  category    String
+  content     String   @db.Text
+  imageUrl    String?
+  isPremium   Boolean  @default(false)
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id])
+}
+
+model CommunityPost {
+  id        String   @id @default(cuid())
+  authorId  String
+  title     String
+  content   String   @db.Text
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author    User               @relation(fields: [authorId], references: [id])
+  comments  CommunityComment[]
+  reactions PostReaction[]
+}
+
+model CommunityComment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User          @relation(fields: [authorId], references: [id])
+}
+
+model PostReaction {
+  id        String       @id @default(cuid())
+  postId    String
+  userId    String
+  type      ReactionType
+  createdAt DateTime     @default(now())
+
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  level       String
+  description String
+  imageUrl    String?
+  isPremium   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  videos       Video[]
+  certificates Certificate[]
+}
+
+model Video {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  url       String
+  duration  String?
+  sortOrder Int      @default(0)
+  isPremium Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress  CourseProgress[]
+}
+
+model CourseProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  videoId     String
+  completedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  video Video @relation(fields: [videoId], references: [id])
+
+  @@unique([userId, videoId])
+}
+
+model Certificate {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  issuedAt  DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+model LiveSession {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  streamUrl   String?
+  scheduledAt DateTime
+  isLive      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model EconomicEvent {
+  id        String      @id @default(cuid())
+  name      String
+  currency  String
+  impact    ImpactLevel
+  eventTime DateTime
+  actual    String?
+  forecast  String?
+  previous  String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model Broker {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  rating        Float    @default(4.0)
+  link          String
+  logoUrl       String?
+  isRecommended Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  minDeposit    String?
+  regulation    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Resource {
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  fileUrl     String
+  category    String
+  tier        ResourceTier @default(FREE)
+  downloads   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Sale {
+  id          String   @id @default(cuid())
+  affiliateId String
+  clientName  String
+  clientEmail String
+  amount      Float
+  description String?
+  createdAt   DateTime @default(now())
+
+  affiliate  User        @relation(fields: [affiliateId], references: [id])
+  commission Commission?
+}
+
+model Commission {
+  id          String   @id @default(cuid())
+  saleId      String   @unique
+  affiliateId String
+  amount      Float
+  withdrawn   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  sale      Sale @relation(fields: [saleId], references: [id])
+  affiliate User @relation(fields: [affiliateId], references: [id])
+}
+
+model WithdrawalRequest {
+  id          String           @id @default(cuid())
+  affiliateId String
+  amount      Float
+  status      WithdrawalStatus @default(PENDING)
+  note        String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  affiliate User @relation(fields: [affiliateId], references: [id])
+}
+
+model PaymentRequest {
+  id            String        @id @default(cuid())
+  clientName    String
+  clientEmail   String
+  phone         String?
+  country       String?
+  service       String
+  amount        Float
+  referralCode  String?
+  paymentMethod String?
+  paymentNote   String?
+  status        PaymentStatus @default(PENDING)
+  rejectedNote  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Review {
+  id         String       @id @default(cuid())
+  clientName String
+  email      String?
+  rating     Int
+  content    String
+  imageUrl   String?
+  status     ReviewStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+}
