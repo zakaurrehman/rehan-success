@@ -5,7 +5,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config'
  * ID it prints between the quotes. EAS cannot write into a .ts config itself,
  * and build servers don't see your local .env, so it must live here.
  */
-const EAS_PROJECT_ID = ''
+const EAS_PROJECT_ID = 'bd3722a7-41f4-4b5e-ad8b-deec65aadadf'
 
 /**
  * Rehan Success — Expo app config.
